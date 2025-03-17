@@ -94,13 +94,13 @@ class Diffusion(nn.Module):
         t = nn.SiLU(self.convt(t)) # [B, 4e, H, W]
         
         inputs = [x]
-        for module in self.down_blocks:
+        for module in self.down_blocks: ## [[res * blocks, Up] * (channels - 1), [res * blocks]]
             x = module(x, t)
             inputs.append(x) 
 
         x = self.residual_block(x, t)
         
-        for i, module in enumerate(self.up_blocks):
+        for i, module in enumerate(self.up_blocks): ## [[res * (blocks + 1), Down] * (channels - 1), [res * (blocks + 1)]]
             if (i + 1) % (self.block + 2) != 0: 
                 x = torch.cat([x, inputs.pop()], dim=1)
             x = module(x, t)
