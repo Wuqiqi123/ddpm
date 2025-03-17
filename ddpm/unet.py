@@ -70,7 +70,7 @@ class Diffusion(nn.Module):
             for _ in range(blocks):
                 self.down_blocks.append(ResidualBlock(in_ch, ch * embedding_size, time_channels))
                 in_ch = ch * embedding_size
-                chans.append(in_ch)
+                chans.append(in_ch) ## out channel for skip connection
             if i != len(channels) - 1:
                 self.down_blocks.append(Downsample(in_ch))
                 chans.append(in_ch)
@@ -83,7 +83,7 @@ class Diffusion(nn.Module):
                 self.up_blocks.append(ResidualBlock(in_ch + chans.pop(), ch * embedding_size, time_channels))
                 in_ch = ch * embedding_size
             if i != len(channels) - 1:
-                self.up_blocks.append(Upsample(in_ch)) 
+                self.up_blocks.append(Upsample(in_ch))
 
         self.conv2 = nn.Conv2d(in_ch, 3, kernel_size=3, padding=1, bias=False)
         self.group_norm = nn.GroupNorm(32, in_ch)
