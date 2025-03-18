@@ -2,8 +2,6 @@ import torch
 import torch.nn as nn
 from einops import rearrange
 
-## https://github.com/Twilight92z/DDPM_pytorch/blob/master/diffusion.py
-
 class Upsample(nn.Module):
     def __init__(self, channels):
         super(Upsample, self).__init__()
