@@ -97,8 +97,6 @@ class Diffusion(nn.Module):
             if isinstance(block, Downsample):
                 inputs.append(x) 
             x = block(x, t)
-
-        # x = self.residual_block(x, t)
         
         for block in self.up_blocks:
             x = block(x, t)
