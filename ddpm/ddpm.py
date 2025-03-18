@@ -99,7 +99,6 @@ class Diffusion(nn.Module):
         for block in self.up_blocks:
             x = block(x, t)
             if isinstance(block, Upsample):
-                ## concat
                 x = torch.cat([x, inputs.pop()], dim=1)
 
         x = self.group_norm(x)
