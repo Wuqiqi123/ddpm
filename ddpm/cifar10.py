@@ -31,14 +31,12 @@ class CIFAR10DataModule(pl.LightningDataModule):
         print("Preparing data...")
 
     def setup(self, stage: str):
-        # Assign Train/val split(s) for use in Dataloaders
         if stage == "fit":
             train_dataset = CIFAR10(root=self.data_dir, train=True, transform=self.train_transform, download=True)
             val_dataset = CIFAR10(root=self.data_dir, train=True, transform=self.val_transform, download=True)
             self.train_set, _ = random_split(train_dataset, [45000, 5000])
             _, self.val_set = random_split(val_dataset, [45000, 5000])
 
-        # Assign Test split(s) for use in Dataloaders
         if stage == "test":
             self.test_set = CIFAR10(root=self.data_dir, train=False, transform=self.val_transform, download=True)
     
