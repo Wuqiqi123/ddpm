@@ -38,10 +38,8 @@ class DDPM(pl.LightningModule):
 
         preds = self.model(x_t, t)
         loss = self.criteria(preds, noise)
-        acc = (preds.argmax(dim=-1) == labels).float().mean()
 
         self.log(f"{mode}_loss", loss)
-        self.log(f"{mode}_acc", acc)
         return loss
 
     def training_step(self, batch, batch_idx):
@@ -62,14 +60,14 @@ def train_model(**kwargs):
         default_root_dir=os.path.join(CHECKPOINT_PATH, "DDPM"),
         max_epochs=180,
         callbacks=[
-            ModelCheckpoint(save_weights_only=True, mode="max", monitor="val_acc"),
+            ModelCheckpoint(save_weights_only=True, mode="max", monitor="val_loss"),
             LearningRateMonitor("epoch"),
         ],
     )
     trainer.logger._log_graph = True  # If True, we plot the computation graph in tensorboard
     trainer.logger._default_hp_metric = None  # Optional logging argument that we don't need
 
-    pretrained_filename = os.path.join(CHECKPOINT_PATH, "ViT/vit.ckpt")
+    pretrained_filename = os.path.join(CHECKPOINT_PATH, "DDPM/ddpm.ckpt")
     dm = CIFAR10DataModule()
     if os.path.isfile(pretrained_filename):
         print(f"Found pretrained model at {pretrained_filename}, loading...")
@@ -79,12 +77,7 @@ def train_model(**kwargs):
         trainer.fit(model, datamodule=dm)
         model = DDPM.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
 
-    # Test best model on validation and test set
-    test_result = trainer.test(model, datamodule=dm, verbose=False)
-    val_result = trainer.test(model, datamodule=dm, verbose=False)
-    result = {"test": test_result[0]["test_acc"], "val": val_result[0]["test_acc"]}
-
-    return model, result
+    return model
 
 model, results = train_model(
     T = 1000,

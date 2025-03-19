@@ -85,15 +85,17 @@ class Diffusion(nn.Module):
         self.activation = nn.SiLU()
 
 
-        self.beta = 0.005 * torch.arange(1, T + 1) / T
-        self.alpha = 1 - self.beta
-        self.bar_alpha = torch.cumprod(self.alpha, 0)
-        self.sqrt_bar_alpha = torch.sqrt(self.bar_alpha)
-        self.sqrt_bar_beta = torch.sqrt(1 - self.sqrt_bar_alpha)
+        beta = 0.005 * torch.arange(1, T + 1) / T
+        alpha = 1 - beta
+        bar_alpha = torch.cumprod(alpha, 0)
+        sqrt_bar_alpha = torch.sqrt(bar_alpha)
+        sqrt_bar_beta = torch.sqrt(1 - bar_alpha)
+        self.register_buffer('sqrt_bar_alpha', sqrt_bar_alpha)
+        self.register_buffer('sqrt_bar_beta', sqrt_bar_beta)
 
     @torch.no_grad
     def sample(self, x_0, t):
-        noise = torch.randn_like(x_0)
+        noise = torch.randn_like(x_0).to(x_0.device)
         shape = (x_0.shape[0], 1, 1, 1)
         return x_0 * self.sqrt_bar_alpha[t].view(shape) + noise * self.sqrt_bar_beta[t].view(shape), noise
 
