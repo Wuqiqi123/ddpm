@@ -37,6 +37,8 @@ class DDPM(pl.LightningModule):
         x_t, noise = self.model.sample(imgs, t)
 
         preds = self.model(x_t, t)
+        preds = torch.flatten(preds)
+        noise = torch.flatten(noise)
         loss = self.criteria(preds, noise)
 
         self.log(f"{mode}_loss", loss)
