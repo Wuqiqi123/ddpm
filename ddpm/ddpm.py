@@ -84,6 +84,19 @@ class Diffusion(nn.Module):
         self.group_norm = nn.GroupNorm(32, in_ch)
         self.activation = nn.SiLU()
 
+
+        self.beta = 0.005 * torch.arange(1, T + 1) / T
+        self.alpha = 1 - self.beta
+        self.bar_alpha = torch.cumprod(self.alpha, 0)
+        self.sqrt_bar_alpha = torch.sqrt(self.bar_alpha)
+        self.sqrt_bar_beta = torch.sqrt(1 - self.sqrt_bar_alpha)
+
+    @torch.no_grad
+    def sample(self, x_0, t):
+        noise = torch.randn_like(x_0)
+        shape = (x_0.shape[0], 1, 1, 1)
+        return x_0 * self.sqrt_bar_alpha[t].view(shape) + noise * self.sqrt_bar_beta[t].view(shape), noise
+
     def forward(self, x, t):
         t = self.embedding(t)
         t = rearrange(t, 'b c -> b c () ()')
