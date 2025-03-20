@@ -10,6 +10,7 @@ import torch.utils.data as data
 from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint
 from ddpm.ddpm import Diffusion
 from ddpm.cifar10 import CIFAR10DataModule
+import torch.nn.functional as F
 
 CHECKPOINT_PATH = os.environ.get("PATH_CHECKPOINT", "ckpt/")
 
@@ -19,7 +20,6 @@ class DDPM(pl.LightningModule):
         super().__init__()
         self.save_hyperparameters()
         self.model = Diffusion(T)
-        self.criteria = nn.MSELoss(reduction="sum")
 
     def forward(self, x):
         return self.model(x)
@@ -37,9 +37,7 @@ class DDPM(pl.LightningModule):
         x_t, noise = self.model.sample(imgs, t)
 
         preds = self.model(x_t, t)
-        preds = torch.flatten(preds)
-        noise = torch.flatten(noise)
-        loss = self.criteria(preds, noise)
+        loss = F.mse_loss(preds, noise)
 
         self.log(f"{mode}_loss", loss)
         return loss
@@ -48,21 +46,15 @@ class DDPM(pl.LightningModule):
         loss = self._calculate_loss(batch, mode="train")
         return loss
 
-    def validation_step(self, batch, batch_idx):
-        self._calculate_loss(batch, mode="val")
-
-    def test_step(self, batch, batch_idx):
-        self._calculate_loss(batch, mode="test")
-
 
 
 def train_model(**kwargs):
     os.makedirs(CHECKPOINT_PATH, exist_ok=True)
     trainer = pl.Trainer(
         default_root_dir=os.path.join(CHECKPOINT_PATH, "DDPM"),
-        max_epochs=180,
+        max_epochs=10,
         callbacks=[
-            ModelCheckpoint(save_weights_only=True, mode="max", monitor="val_loss"),
+            ModelCheckpoint(save_weights_only=True, mode="min", monitor="train_loss"),
             LearningRateMonitor("epoch"),
         ],
     )

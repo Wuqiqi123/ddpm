@@ -54,7 +54,7 @@ class ResidualBlock(nn.Module):
 
 
 class Diffusion(nn.Module):
-    def __init__(self, T, embedding_size = 128, channels = [1, 1, 2, 2, 4, 4], blocks = 2):
+    def __init__(self, T, beta_range = [0.0001, 0.02],  embedding_size = 128, channels = [1, 2, 2, 2], blocks = 2):
         super(Diffusion, self).__init__()
         self.block = blocks
         self.embedding = nn.Embedding(T, embedding_size)
@@ -85,15 +85,15 @@ class Diffusion(nn.Module):
         self.activation = nn.SiLU()
 
 
-        beta = 0.005 * torch.arange(1, T + 1) / T
-        alpha = 1 - beta
+        beta = torch.linspace(*beta_range, T, dtype=torch.float32)
+        alpha = 1.0 - beta
         bar_alpha = torch.cumprod(alpha, 0)
         sqrt_bar_alpha = torch.sqrt(bar_alpha)
         sqrt_bar_beta = torch.sqrt(1 - bar_alpha)
         self.register_buffer('sqrt_bar_alpha', sqrt_bar_alpha)
         self.register_buffer('sqrt_bar_beta', sqrt_bar_beta)
 
-    @torch.no_grad
+
     def sample(self, x_0, t):
         noise = torch.randn_like(x_0).to(x_0.device)
         shape = (x_0.shape[0], 1, 1, 1)
