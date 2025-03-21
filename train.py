@@ -10,6 +10,7 @@ import torch.utils.data as data
 from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint
 from ddpm.ddpm import Diffusion
 from ddpm.cifar10 import CIFAR10DataModule
+from ddpm.mnist import MNISTDataModule
 from tqdm import tqdm
 from einops import rearrange, repeat
 
@@ -17,10 +18,10 @@ CHECKPOINT_PATH = os.environ.get("PATH_CHECKPOINT", "ckpt/")
 
 
 class DDPMTrainer(pl.LightningModule):
-    def __init__(self, T, lr):
+    def __init__(self, T, img_ch, lr):
         super().__init__()
         self.save_hyperparameters()
-        self.model = Diffusion(T)
+        self.model = Diffusion(T, img_ch)
 
     def forward(self, x):
         return self.model(x)
@@ -71,7 +72,7 @@ class DDPMSample(nn.Module):
     @torch.no_grad()
     def forward(self, x_t):
         x = [x_t]
-        record = [800, 500, 300, 100, 50, 10, 0]
+        record = [800, 600, 400, 100, 50, 10, 0]
         for t in reversed(range(self.T)):
             x_t = self.sample_one_step(x_t, t)
             if t in record:
@@ -86,7 +87,7 @@ def train_model(**kwargs):
         default_root_dir=os.path.join(CHECKPOINT_PATH, "DDPM"),
         max_epochs=20,
         callbacks=[
-            ModelCheckpoint(save_weights_only=True, mode="min", monitor="train_loss"),
+            ModelCheckpoint(save_weights_only=True, every_n_epochs = 2),
             LearningRateMonitor("epoch"),
         ],
     )
@@ -94,12 +95,12 @@ def train_model(**kwargs):
     trainer.logger._default_hp_metric = None  # Optional logging argument that we don't need
 
     pretrained_filename = os.path.join(CHECKPOINT_PATH, "DDPM/ddpm.ckpt")
-    dm = CIFAR10DataModule()
+    dm = MNISTDataModule()
     if os.path.isfile(pretrained_filename):
         print(f"Found pretrained model at {pretrained_filename}, loading...")
         model = DDPMTrainer.load_from_checkpoint(pretrained_filename)
     else:
-        model = DDPMTrainer(T=kwargs["T"], lr=kwargs["lr"])
+        model = DDPMTrainer(T=kwargs["T"], img_ch=kwargs["img_ch"], lr=kwargs["lr"])
         trainer.fit(model, datamodule=dm)
         model = DDPMTrainer.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
 
@@ -107,19 +108,20 @@ def train_model(**kwargs):
 
 model_trainer = train_model(
     T = 1000,
+    img_ch = 1,
     lr=3e-4,
 )
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-z_t = torch.randn((4, 3, 32, 32), device=device)
+z_t = torch.randn((8, 1, 28, 28), device=device)
 ddpm_sample = DDPMSample(model_trainer.model, T=1000)
 samples = ddpm_sample(z_t)
 print(samples.shape)
 
 import matplotlib.pyplot as plt
 
-fig, axs = plt.subplots(4, 8, figsize=(20, 5))
-for i in range(4):
+fig, axs = plt.subplots(8, 8, figsize=(20, 5))
+for i in range(8):
     for j in range(8):
         img = samples[i][j] * 0.5 + 0.5
         axs[i, j].imshow(img.cpu().permute(1, 2, 0).numpy())

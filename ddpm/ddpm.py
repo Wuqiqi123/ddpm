@@ -54,11 +54,12 @@ class ResidualBlock(nn.Module):
 
 
 class Diffusion(nn.Module):
-    def __init__(self, T, beta_range = [0.0001, 0.02],  embedding_size = 128, channels = [1, 2, 2, 2], blocks = 2):
+    def __init__(self, T, img_ch, beta_range = [0.0001, 0.02],  embedding_size = 32, channels = [1, 2], blocks = 2):
         super(Diffusion, self).__init__()
         self.block = blocks
+        self.img_ch = img_ch
         self.embedding = nn.Embedding(T, embedding_size)
-        self.convx = nn.Conv2d(3, embedding_size, kernel_size=3, padding=1, bias=False)
+        self.convx = nn.Conv2d(self.img_ch, embedding_size, kernel_size=3, padding=1, bias=False)
         time_channels = embedding_size * 4
         self.convt = nn.Conv2d(embedding_size, time_channels, kernel_size=3, padding=1, bias=False)
         
@@ -80,7 +81,7 @@ class Diffusion(nn.Module):
             self.up_blocks.append(Upsample(in_ch))
             in_ch += skip_chans.pop()
 
-        self.conv2 = nn.Conv2d(in_ch, 3, kernel_size=3, padding=1, bias=False)
+        self.conv2 = nn.Conv2d(in_ch, self.img_ch, kernel_size=3, padding=1, bias=False)
         self.group_norm = nn.GroupNorm(32, in_ch)
         self.activation = nn.SiLU()
 
