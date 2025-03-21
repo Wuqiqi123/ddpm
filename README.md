@@ -1,7 +1,21 @@
 # ddpm
 Denoising Diffusion Probabilistic Mode
 
+![alt text](doc/paper.png)
 
 ## Mnist results
 
-![](mnist_result.png)
+![](doc/mnist_result.png)
+
+
+```
+@misc{ho2020denoisingdiffusionprobabilisticmodels,
+      title={Denoising Diffusion Probabilistic Models}, 
+      author={Jonathan Ho and Ajay Jain and Pieter Abbeel},
+      year={2020},
+      eprint={2006.11239},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2006.11239}, 
+}
+```
